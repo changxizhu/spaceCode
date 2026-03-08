@@ -1,11 +1,12 @@
 # SpaceCode for small ideas
 
 ## Project Structure
-- `main.py` - Main entry point to choose training framework
+- `main.py` - Main entry point to choose training framework or run RoPE test
 - `models/model.py` - Shared SimpleCNN model definition and data loading utilities
 - `multi_cards/ddp.py` - PyTorch DDP training implementation
 - `multi_cards/deepseed.py` - DeepSpeed training implementation
 - `multi_cards/hf_accelerate.py` - Hugging Face Accelerate training implementation
+- `pos_encoding/` - RoPE (Rotary Position Embedding) implementation
 - `requirements.txt` - Python dependencies
 
 
@@ -49,10 +50,18 @@ accelerate launch --multi_gpu --num_processes=2 multi_cards/hf_accelerate.py --b
 
 ### How to run
 
+**RoPE positional embedding test:**
+```bash
+conda activate space
+python main.py --framework rope
+# Or run directly: python pos_encoding/test.py
+```
+
 **Interactive mode:**
 ```bash
+conda activate space
 python main.py --batch_size 32 --num_epochs 10
-# Then select framework: 1 (DDP), 2 (DeepSpeed), or 3 (Accelerate)
+# Then select: 1 (DDP), 2 (DeepSpeed), 3 (Accelerate), or 4 (RoPE test)
 ```
 
 **Direct framework selection:**
@@ -65,6 +74,9 @@ python main.py --framework deepseed --num_gpus 2 --batch_size 32 --num_epochs 10
 
 # Accelerate
 python main.py --framework accelerate --batch_size 32 --num_epochs 10
+
+# RoPE test
+python main.py --framework rope
 ```
 
 

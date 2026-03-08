@@ -22,8 +22,8 @@ class RoPE(nn.Module):
     def _apply_rotary_emb(self, x, freqs):
         # x: [batch_size, seq_len, num_heads, head_dim]
         # freqs: [seq_len, head_dim//2]
-        cos = torch.cos(freqs)
-        sin = torch.sin(freqs)
+        cos = torch.cos(freqs).unsqueeze(0).unsqueeze(2)  # [1, seq_len, 1, head_dim//2]
+        sin = torch.sin(freqs).unsqueeze(0).unsqueeze(2)
 
         # Reshape x to apply rotation
         x1, x2 = x[..., ::2], x[..., 1::2]

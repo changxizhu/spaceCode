@@ -27,8 +27,10 @@ class MultiHeadAttention(nn.Module):
         qkv = qkv.permute(2, 0, 3, 1, 4)  # [3, batch_size, num_heads, seq_len, head_dim]
         q, k, v = qkv[0], qkv[1], qkv[2]
 
-        # Apply RoPE to q and k
-        q, k = self.rope(q, k)
+        # RoPE expects [batch_size, seq_len, num_heads, head_dim]
+        q_rope, k_rope = q.permute(0, 2, 1, 3), k.permute(0, 2, 1, 3)
+        q, k = self.rope(q_rope, k_rope)
+        q, k = q.permute(0, 2, 1, 3), k.permute(0, 2, 1, 3)  # back to [batch_size, num_heads, seq_len, head_dim]
 
         # Attention
         attn_weights = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.head_dim)

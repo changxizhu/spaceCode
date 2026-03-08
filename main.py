@@ -50,6 +50,13 @@ def run_accelerate(args):
     subprocess.run(cmd)
 
 
+def run_rope_test(args):
+    """Run RoPE positional embedding test"""
+    cmd = [sys.executable, str(Path(__file__).parent / "pos_encoding" / "test.py")]
+    print(f"🧪 Running RoPE positional embedding test...")
+    subprocess.run(cmd)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="SpaceCode Training Main Entry Point",
@@ -65,6 +72,9 @@ Examples:
   # Run Accelerate training
   python main.py --framework accelerate --batch_size 32 --num_epochs 10
   
+  # Run RoPE positional embedding test
+  python main.py --framework rope
+  
   # Interactive mode (no framework specified)
   python main.py --batch_size 32 --num_epochs 10
         """
@@ -73,8 +83,8 @@ Examples:
     parser.add_argument(
         "--framework",
         type=str,
-        choices=["ddp", "deepseed", "accelerate"],
-        help="Choose training framework (ddp, deepseed, or accelerate)"
+        choices=["ddp", "deepseed", "accelerate", "rope"],
+        help="Choose training framework (ddp, deepseed, accelerate) or rope for RoPE test"
     )
     parser.add_argument(
         "--batch_size",
@@ -102,13 +112,14 @@ Examples:
         print("\n" + "="*60)
         print("🎯 SpaceCode - Distributed Training Framework Selector")
         print("="*60)
-        print("\nAvailable frameworks:")
-        print("  1. DDP     - PyTorch Distributed Data Parallel")
+        print("\nAvailable options:")
+        print("  1. DDP       - PyTorch Distributed Data Parallel")
         print("  2. DeepSpeed - DeepSpeed with ZeRO optimization")
         print("  3. Accelerate - Hugging Face Accelerate")
+        print("  4. RoPE      - RoPE positional embedding test")
         print("="*60 + "\n")
         
-        choice = input("Select framework (1/2/3) or 'q' to quit: ").strip().lower()
+        choice = input("Select option (1/2/3/4) or 'q' to quit: ").strip().lower()
         
         if choice == 'q':
             print("Exiting...")
@@ -117,23 +128,26 @@ Examples:
         choice_map = {
             '1': 'ddp',
             '2': 'deepseed',
-            '3': 'accelerate'
+            '3': 'accelerate',
+            '4': 'rope'
         }
         
         if choice not in choice_map:
-            print("❌ Invalid choice. Please select 1, 2, or 3.")
+            print("❌ Invalid choice. Please select 1, 2, 3, or 4.")
             sys.exit(1)
         
         args.framework = choice_map[choice]
         print(f"\n✅ Selected framework: {args.framework.upper()}\n")
     
-    # Route to appropriate training function
+    # Route to appropriate function
     if args.framework == "ddp":
         run_ddp(args)
     elif args.framework == "deepseed":
         run_deepseed(args)
     elif args.framework == "accelerate":
         run_accelerate(args)
+    elif args.framework == "rope":
+        run_rope_test(args)
 
 
 if __name__ == "__main__":
