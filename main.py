@@ -6,8 +6,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-from multi_cards import accelerate
-
 def run_ddp(args):
     """Run training with PyTorch DDP"""
     cmd = [
@@ -40,7 +38,7 @@ def run_accelerate(args):
     """Run training with Hugging Face Accelerate"""
     cmd = [
         "accelerate", "launch",
-        str(Path(__file__).parent / "multi_cards" / "accelerate.py"),
+        str(Path(__file__).parent / "multi_cards" / "hf_accelerate.py"),
         "--batch_size", str(args.batch_size),
         "--num_epochs", str(args.num_epochs),
     ]

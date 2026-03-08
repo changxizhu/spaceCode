@@ -5,19 +5,18 @@
 - `models/model.py` - Shared SimpleCNN model definition and data loading utilities
 - `multi_cards/ddp.py` - PyTorch DDP training implementation
 - `multi_cards/deepseed.py` - DeepSpeed training implementation
-- `multi_cards/accelerate.py` - Hugging Face Accelerate training implementation
+- `multi_cards/hf_accelerate.py` - Hugging Face Accelerate training implementation
 - `requirements.txt` - Python dependencies
 
 
 
 ## Allocating GPUs
 
-### 1. Interactive Allocation with `salloc`
-
 Request GPU resources interactively using `salloc` with the `--gres` (Generic Resources) flag:
 
 ```bash
 salloc --time=1:00:00 --partition=gpu_a100 --gres=gpu:2
+conda activate space
 ```
 
 **Parameters:**
@@ -26,13 +25,6 @@ salloc --time=1:00:00 --partition=gpu_a100 --gres=gpu:2
 - `--gres=gpu:2`: Request 2 GPUs
 
 
-### 2. Background Job Submission with `nohup`
-
-Submit jobs to run in the background without SLURM:
-
-```bash
-nohup python xxx.py > output.log 2>&1 &
-```
 
 ## Multi-Cards Processing
 
@@ -50,9 +42,9 @@ deepspeed --num_gpus=2 multi_cards/deepseed.py --batch_size 32 --num_epochs 10
 
 **Hugging Face Accelerate:**
 ```bash
-python multi_cards/accelerate.py --batch_size 32 --num_epochs 10
-accelerate launch multi_cards/accelerate.py --batch_size 32 --num_epochs 10
-accelerate launch --multi_gpu --num_processes=2 multi_cards/accelerate.py --batch_size 32 --num_epochs 10
+python multi_cards/hf_accelerate.py --batch_size 32 --num_epochs 10
+accelerate launch multi_cards/hf_accelerate.py --batch_size 32 --num_epochs 10
+accelerate launch --multi_gpu --num_processes=2 multi_cards/hf_accelerate.py --batch_size 32 --num_epochs 10
 ```
 
 ### How to run
@@ -73,4 +65,13 @@ python main.py --framework deepseed --num_gpus 2 --batch_size 32 --num_epochs 10
 
 # Accelerate
 python main.py --framework accelerate --batch_size 32 --num_epochs 10
+```
+
+
+**Background Job Submission with `nohup`**
+
+Submit jobs to run in the background without SLURM:
+
+```bash
+nohup python xxx.py > output.log 2>&1 &
 ```

@@ -67,6 +67,10 @@ def main():
     # Initialize Accelerator
     accelerator = Accelerator()
 
+    # Create save_data directory if it doesn't exist
+    save_dir = Path("./save_data")
+    save_dir.mkdir(exist_ok=True)
+
     # Create model
     model = get_model()
     
@@ -102,10 +106,10 @@ def main():
         avg_loss = train_epoch(model, train_loader, optimizer, criterion, accelerator)
         accelerator.print(f"Epoch {epoch + 1} - Average Loss: {avg_loss:.4f}")
         
-        # Save checkpoint
-        if accelerator.is_main_process:
-            checkpoint_path = f"./checkpoint-epoch-{epoch}.pt"
-            accelerator.save_state(f"./checkpoint-epoch-{epoch}")
+        # Save checkpoint every 20 epochs
+        if (epoch + 1) % 20 == 0 and accelerator.is_main_process:
+            checkpoint_path = save_dir / f"checkpoint-epoch-{epoch}.pt"
+            accelerator.save_state(str(save_dir / f"checkpoint-epoch-{epoch}"))
             accelerator.print(f"Checkpoint saved to {checkpoint_path}")
 
 
