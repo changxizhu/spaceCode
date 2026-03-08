@@ -1,0 +1,61 @@
+# Data directories
+data/
+datasets/
+*.pkl
+*.pickle
+*.npy
+*.npz
+*.h5
+*.hdf5
+
+# Model checkpoints and logs
+checkpoints/
+logs/
+runs/
+tensorboard/
+wandb/
+mlruns/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+output.log
+
+# Environment files
+.env
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Build files
+build/
+dist/
+*.egg-info/
+
+# PyTorch specific
+*.pth
+*.pt
+*.pth.tar
