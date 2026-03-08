@@ -6,40 +6,11 @@ import torch.nn as nn
 import torch.optim as optim
 import argparse
 import os
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 from torchvision import datasets, transforms
-
-
-# Simple CNN Model
-class SimpleCNN(nn.Module):
-    def __init__(self):
-        super(SimpleCNN, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.fc1 = nn.Linear(128 * 8 * 8, 256)
-        self.fc2 = nn.Linear(256, 10)
-        self.relu = nn.ReLU()
-        
-    def forward(self, x):
-        x = self.pool(self.relu(self.conv1(x)))
-        x = self.pool(self.relu(self.conv2(x)))
-        x = x.view(x.size(0), -1)
-        x = self.relu(self.fc1(x))
-        x = self.fc2(x)
-        return x
-
-
-# Simple Dataset wrapper
-class SimpleDataset(Dataset):
-    def __init__(self, data, targets):
-        self.data = data
-        self.targets = targets
-    
-    def __len__(self):
-        return len(self.data)
-    
-    def __getitem__(self, idx):
-        return self.data[idx], self.targets[idx]
+from models.model import get_model, get_cifar10_dataset
 
 def setup(rank, world_size):
     """Initialize distributed training environment"""
@@ -56,7 +27,7 @@ def main(rank, world_size, args):
     setup(rank, world_size)
     
     # Create model and move to GPU
-    model = SimpleCNN()
+    model = get_model()
     model.cuda(rank)
     model = DDP(model, device_ids=[rank])
     
@@ -65,11 +36,7 @@ def main(rank, world_size, args):
     criterion = nn.CrossEntropyLoss()
     
     # Prepare CIFAR-10 dataset
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    ])
-    train_dataset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+    train_dataset = get_cifar10_dataset(train=True)
     train_sampler = DistributedSampler(
         train_dataset,
         num_replicas=world_size,
