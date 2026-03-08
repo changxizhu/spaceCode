@@ -1,29 +1,2 @@
 nohup: ignoring input
 num GPU: 2
-rank: 1 2
-train_sampler: 50000 32 25000
-rank: 0 2
-train_sampler: 50000 32 25000
-[rank0]:[W308 16:46:36.176843434 ProcessGroupNCCL.cpp:1538] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
-W0308 16:46:36.521318 2215366 /gpfs/home4/shuaih/aalot/anaconda3/envs/transfer/lib/python3.9/site-packages/torch/multiprocessing/spawn.py:169] Terminating process 2215404 via signal SIGTERM
-Traceback (most recent call last):
-  File "/gpfs/home4/shuaih/coding/spaceCode/ddp.py", line 122, in <module>
-    torch.multiprocessing.spawn(main, args=(world_size, args), nprocs=world_size, join=True)
-  File "/home/shuaih/aalot/anaconda3/envs/transfer/lib/python3.9/site-packages/torch/multiprocessing/spawn.py", line 340, in spawn
-    return start_processes(fn, args, nprocs, join, daemon, start_method="spawn")
-  File "/home/shuaih/aalot/anaconda3/envs/transfer/lib/python3.9/site-packages/torch/multiprocessing/spawn.py", line 296, in start_processes
-    while not context.join():
-  File "/home/shuaih/aalot/anaconda3/envs/transfer/lib/python3.9/site-packages/torch/multiprocessing/spawn.py", line 215, in join
-    raise ProcessRaisedException(msg, error_index, failed_process.pid)
-torch.multiprocessing.spawn.ProcessRaisedException: 
-
--- Process 1 terminated with the following error:
-Traceback (most recent call last):
-  File "/home/shuaih/aalot/anaconda3/envs/transfer/lib/python3.9/site-packages/torch/multiprocessing/spawn.py", line 90, in _wrap
-    fn(i, *args)
-  File "/gpfs/home4/shuaih/coding/spaceCode/ddp.py", line 101, in main
-    print(f"Rank {rank}: gradient before backward: {model.conv1.weight.grad}")
-  File "/home/shuaih/aalot/anaconda3/envs/transfer/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1962, in __getattr__
-    raise AttributeError(
-AttributeError: 'DistributedDataParallel' object has no attribute 'conv1'
-

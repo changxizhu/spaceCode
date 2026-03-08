@@ -98,11 +98,11 @@ def main(rank, world_size, args):
             output = model(data)
             loss = criterion(output, target)
             
-            print(f"Rank {rank}: gradient before backward: {model.conv1.weight.grad}")
+            print(f"Rank {rank}: gradient before backward: {model.module.conv1.weight.grad}")
             
             loss.backward()
             
-            print(f"Rank {rank}: gradient after backward: {model.conv1.weight.grad}")
+            print(f"Rank {rank}: gradient after backward: {model.module.conv1.weight.grad}")
             
             optimizer.step()
             
