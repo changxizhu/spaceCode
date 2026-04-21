@@ -23,12 +23,14 @@ class RoPE(nn.Module):
     def _apply_rotary_emb(self, x, freqs):
         # x: [batch_size, seq_len, num_heads, head_dim]
         # freqs: [seq_len, head_dim//2]
+        batch_size, seq_len, num_heads = x.size(0), x.size(1), x.size(2) 
         cos = torch.cos(freqs).unsqueeze(0).unsqueeze(2)  # [1, seq_len, 1, head_dim//2]
         sin = torch.sin(freqs).unsqueeze(0).unsqueeze(2)
 
         # Reshape x to apply rotation
         x1, x2 = x[..., ::2], x[..., 1::2]
-        return torch.cat([x1 * cos - x2 * sin, x2 * cos + x1 * sin], dim=-1)
+        x_stack = torch.stack((x1 * cos - x2 * sin, x2 * cos + x1 * sin), dim=-1)
+        return x_stack.reshape(batch_size, seq_len, num_heads, -1)
 
     def forward(self, q, k):
         # q, k: [batch_size, seq_len, num_heads, head_dim]
@@ -126,6 +128,6 @@ comparison_configs = [
     {"batch": 1, "seq_len": 128, "num_heads": 2, "head_dim": 32},
     {"batch": 30, "seq_len": 512, "num_heads": 4, "head_dim": 100},
     {"batch": 60, "seq_len": 1024, "num_heads": 8, "head_dim": 128},
-    {"batch": 60, "seq_len": 1024, "num_heads": 24, "head_dim": 1000},
+    {"batch": 60, "seq_len": 1024, "num_heads": 8, "head_dim": 500},
 ]
 visualize_config_comparison(comparison_configs)
