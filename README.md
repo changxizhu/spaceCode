@@ -57,6 +57,12 @@ python main.py --framework rope
 # Or run directly: python pos_encoding/test.py
 ```
 
+**macOS memory monitor:**
+```bash
+python scripts/macos_memory_monitor.py
+python scripts/macos_memory_monitor.py --powermetrics
+```
+
 **Interactive mode:**
 ```bash
 conda activate space
