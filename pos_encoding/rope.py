@@ -20,28 +20,40 @@ class RoPE(nn.Module):
         freqs = torch.einsum('i , j -> i j', t, inv_freq)
         return freqs
 
-    def _apply_rotary_emb(self, x, freqs):
+    def _apply_rotary_emb(self, x, cos, sin):
         # x: [batch_size, seq_len, num_heads, head_dim]
-        # freqs: [seq_len, head_dim//2]
-        batch_size, seq_len, num_heads = x.size(0), x.size(1), x.size(2) 
+        # cos/sin: [1, seq_len, 1, head_dim//2]
+        x1, x2 = x[..., ::2], x[..., 1::2]
+        out = torch.empty_like(x)
+        out[..., ::2] = x1 * cos - x2 * sin
+        out[..., 1::2] = x2 * cos + x1 * sin
+        return out
+
+    def _apply_rotary_emb_inplace_(self, x, cos, sin):
+        # In-place rotation to avoid holding original and rotated copies together.
+        x1 = x[..., ::2].clone()
+        x2 = x[..., 1::2].clone()
+        x[..., ::2] = x1 * cos - x2 * sin
+        x[..., 1::2] = x2 * cos + x1 * sin
+        return x
+
+    def forward(self, q, k, inplace=True):
+        # q, k: [batch_size, seq_len, num_heads, head_dim]
+        seq_len = q.size(1)
+        freqs = self.freqs[:seq_len].to(device=q.device, dtype=q.dtype)
+
+        # Apply RoPE to q and k
         cos = torch.cos(freqs).unsqueeze(0).unsqueeze(2)  # [1, seq_len, 1, head_dim//2]
         sin = torch.sin(freqs).unsqueeze(0).unsqueeze(2)
 
-        # Reshape x to apply rotation
-        x1, x2 = x[..., ::2], x[..., 1::2]
-        x_stack = torch.stack((x1 * cos - x2 * sin, x2 * cos + x1 * sin), dim=-1)
-        return x_stack.reshape(batch_size, seq_len, num_heads, -1)
+        if inplace:
+            q = self._apply_rotary_emb_inplace_(q, cos, sin)
+            k = self._apply_rotary_emb_inplace_(k, cos, sin)
+        else:
+            q = self._apply_rotary_emb(q, cos, sin)
+            k = self._apply_rotary_emb(k, cos, sin)
 
-    def forward(self, q, k):
-        # q, k: [batch_size, seq_len, num_heads, head_dim]
-        seq_len = q.size(1)
-        freqs = self.freqs[:seq_len]
-
-        # Apply RoPE to q and k
-        q_out = self._apply_rotary_emb(q, freqs)
-        k_out = self._apply_rotary_emb(k, freqs)
-
-        return q_out, k_out
+        return q, k
 
 
 def visualize_parameter_effects(rope, q, q_out, k, k_out, batch_idx=0, head_idx=0, output_path="pos_encoding/rope_parameter_effects.png"):
@@ -76,10 +88,10 @@ def visualize_parameter_effects(rope, q, q_out, k, k_out, batch_idx=0, head_idx=
 
 def run_example(batch, seq_len, num_heads, head_dim):
     rope = RoPE(head_dim, max_seq_len=seq_len)
-    q = torch.rand(batch, seq_len, num_heads, head_dim)
-    k = torch.rand(batch, seq_len, num_heads, head_dim)
-    q_out, k_out = rope(q, k)
-    return rope, q, q_out, k, k_out
+    q = torch.rand(batch, seq_len, num_heads, head_dim, dtype=torch.float16)
+    k = torch.rand(batch, seq_len, num_heads, head_dim, dtype=torch.float16)
+    q, k = rope(q, k, inplace=True)
+    return rope, q, k
 
 
 def visualize_config_comparison(configs, output_path="pos_encoding/rope_config_comparison.png"):
@@ -88,9 +100,8 @@ def visualize_config_comparison(configs, output_path="pos_encoding/rope_config_c
         axes = axes.reshape(1, -1)
 
     for row_axes, config in zip(axes, configs):
-        rope, q, q_out, _, _ = run_example(**config)
-        q_in = q[0, :, 0, :].detach().cpu()
-        q_delta = (q_out[0, :, 0, :] - q[0, :, 0, :]).abs().detach().cpu()
+        rope, q_rot, _ = run_example(**config)
+        q_map = q_rot[0, :, 0, :].detach().cpu()
         freqs = rope.freqs[:config["seq_len"]].detach().cpu()
         title_prefix = (
             f"b={config['batch']}, s={config['seq_len']}, "
@@ -98,8 +109,8 @@ def visualize_config_comparison(configs, output_path="pos_encoding/rope_config_c
         )
 
         panels = (
-            (q_in, f"{title_prefix}\nq input", "head_dim"),
-            (q_delta, f"{title_prefix}\n|q_out - q|", "head_dim"),
+            (q_map, f"{title_prefix}\nq after RoPE", "head_dim"),
+            (q_map.abs(), f"{title_prefix}\n|q after RoPE|", "head_dim"),
             (freqs, f"{title_prefix}\nrotation angles", "dim pair"),
         )
 
@@ -115,19 +126,20 @@ def visualize_config_comparison(configs, output_path="pos_encoding/rope_config_c
     print(f"saved visualization to {output_path}")
 
 
-batch = 30
-seq_len = 512
-num_heads = 4
-head_dim = 100
+if __name__ == "__main__":
+    batch = 30
+    seq_len = 512
+    num_heads = 4
+    head_dim = 100
 
-rope, q, q_out, k, k_out = run_example(batch, seq_len, num_heads, head_dim)
-print(q_out.size(), k_out.size())
-visualize_parameter_effects(rope, q, q_out, k, k_out)
+    rope, q, k = run_example(batch, seq_len, num_heads, head_dim)
+    print(q.size(), k.size())
 
-comparison_configs = [
-    {"batch": 1, "seq_len": 128, "num_heads": 2, "head_dim": 32},
-    {"batch": 30, "seq_len": 512, "num_heads": 4, "head_dim": 100},
-    {"batch": 60, "seq_len": 1024, "num_heads": 8, "head_dim": 128},
-    {"batch": 60, "seq_len": 1024, "num_heads": 8, "head_dim": 500},
-]
-visualize_config_comparison(comparison_configs)
+    # Keep demo configs moderate to avoid OOM during visualization.
+    comparison_configs = [
+        {"batch": 1, "seq_len": 128, "num_heads": 2, "head_dim": 32},
+        {"batch": 30, "seq_len": 512, "num_heads": 4, "head_dim": 100},
+        {"batch": 60, "seq_len": 1024, "num_heads": 8, "head_dim": 128},
+        {"batch": 60, "seq_len": 10024, "num_heads": 24, "head_dim": 500},  # this hits the limit which is around 50GB
+    ]
+    visualize_config_comparison(comparison_configs)
