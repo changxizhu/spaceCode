@@ -4,41 +4,51 @@ client = anthropic.Anthropic()
 
 # The tools array tells Claude what's available:
 # a name, a description, and a JSON schema for the inputs.
-tools = [
-    {
-        "name": "get_weather",
-        "description": "Get the current weather for a city.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "city": {
-                    "type": "string",
-                    "description": "The city to get weather for",
-                }
-            },
-            "required": ["city"],
-        },
+const_tools = [
+  {
+    "name": "get_weather",
+    "description": "Get today's current weather for a city.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "city": { "type": "string", "description": "The city to check" }
+      },
+      "required": ["city"]
     }
-]
+  },
+  {
+    "name": "get_forecast",
+    "description": "Get the weather forecast for the next few days for a city.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "city": { "type": "string", "description": "The city to check" }
+      },
+      "required": ["city"]
+    }
+  }
+];
 
 # run_tool is just a hardcoded lookup.
 # In a real app, this would hit your database, an API, whatever.
 def run_tool(name, tool_input):
     if name == "get_weather":
         return f"Weather in {tool_input['city']}: 95F, sunny"
+    if name == "get_forecast":
+        return f"Weather in {tool_input['city']}: 95F, rainny tomorrow"
     raise ValueError(f"Unknown tool: {name}")
 
 messages = [
-    {"role": "user", "content": "What should I wear in Austin today?"}
+    {"role": "user", "content": "you're packing for a three-day trip to Denver, and you want both today's weather and the forecast for the next two days.?"}
 ]
 
 # The agent loop. Each iteration sends messages to Claude
 # and switches on the response's stop reason.
 while True:
     response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1024,
-        tools=tools,
+        model="claude-haiku-4-5-20251001",
+        max_tokens=300,
+        tools=const_tools,
         messages=messages,
         system="You are not friendly"
     )
@@ -71,3 +81,4 @@ while True:
         # back into messages, then loop again so Claude can answer.
         messages.append({"role": "assistant", "content": response.content})
         messages.append({"role": "user", "content": tool_results})
+        

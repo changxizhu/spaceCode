@@ -2,19 +2,24 @@ import anthropic
 
 client = anthropic.Anthropic()
 
-
-
-weather_tool = {
-    "name": "get_weather",
-    "description": "Get the current weather for a city.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "city": {"type": "string", "description": "City name"}
+# The tools array tells Claude what's available:
+# a name, a description, and a JSON schema for the inputs.
+tools = [
+    {
+        "name": "get_weather",
+        "description": "Get the current weather for a city.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string",
+                    "description": "The city to get weather for",
+                }
+            },
+            "required": ["city"],
         },
-        "required": ["city"],
-    },
-}
+    }
+]
 
 # run_tool is just a hardcoded lookup.
 # In a real app, this would hit your database, an API, whatever.
@@ -23,27 +28,24 @@ def run_tool(name, tool_input):
         return f"Weather in {tool_input['city']}: 95F, sunny"
     raise ValueError(f"Unknown tool: {name}")
 
-
-messages=[
-    {
-        "role": "user",
-        "content": "Plan a road trip out of San Francisco with two stops, "
-                "weighing weather and drive time.",
-    }
+messages = [
+    {"role": "user", "content": "What should I wear in Austin today?"}
 ]
-        
+
+# The agent loop. Each iteration sends messages to Claude
+# and switches on the response's stop reason.
 while True:
     response = client.messages.create(
-        model="claude-opus-4-7",
-        max_tokens=6000,
-        # thinking={"type": "adaptive"},
-        # output_config={"effort": "low"},  # low | medium | high | xhigh | max
-        tools=[weather_tool],
-        messages=messages
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1024,
+        tools=tools,
+        messages=messages,
+        system="You are not friendly"
     )
     
+    # print("tool use:", response, response.content)
     print("messages:", messages)
-    
+
     if response.stop_reason == "end_turn":
         # Claude is done. Print the final text and break.
         for block in response.content:
@@ -69,5 +71,3 @@ while True:
         # back into messages, then loop again so Claude can answer.
         messages.append({"role": "assistant", "content": response.content})
         messages.append({"role": "user", "content": tool_results})
-        
-    
